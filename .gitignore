@@ -5,3 +5,5 @@ __pycache__/
 .mypy_cache/
 *.db
 .DS_Store
+*.egg-info/
+src/*.egg-info/
