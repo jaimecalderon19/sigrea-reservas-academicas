@@ -61,6 +61,17 @@ El sistema SHALL permitir al administrador cambiar el rol y activar o desactivar
 - **WHEN** un coordinador intenta desactivar una cuenta
 - **THEN** el sistema rechaza la acción por falta de permiso
 
+### Requirement: Siempre queda un administrador activo
+El sistema SHALL rechazar desactivar o cambiar el rol del único administrador activo.
+
+#### Scenario: El único administrador no se desactiva
+- **WHEN** el único administrador activo intenta desactivar su propia cuenta
+- **THEN** el sistema rechaza la acción y la cuenta sigue activa y con rol administrador
+
+#### Scenario: Hay otro administrador
+- **WHEN** existen dos administradores activos y uno desactiva al otro
+- **THEN** la cuenta desactivada queda inactiva y el otro administrador sigue activo
+
 ### Requirement: Sesión obligatoria para operar
 El sistema SHALL rechazar una operación de negocio cuando la petición no trae una sesión válida.
 

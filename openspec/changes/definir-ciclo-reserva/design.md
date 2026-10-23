@@ -27,4 +27,4 @@ Ver `PLAN_INGENIERIA.md`, ciclo de vida. Esta capacidad no crea la regla de cruc
 
 ## Risks / Trade-offs
 
-- [El escenario de liberación asume que la pendiente ocupaba el cupo] → hoy la spec de solicitud no lo dice. Implementar este escenario contra esa spec sería contradecir el plan o contradecir la spec. Se corrige en la revisión, antes de código.
+- [El escenario de liberación exigía que la pendiente ocupara el cupo] → la revisión del 2026-10-23 ya corrigió `solicitud-reserva`. Este cambio se implementa después de esa corrección, no contra el borrador.

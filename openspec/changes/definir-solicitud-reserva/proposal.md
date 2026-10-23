@@ -8,8 +8,9 @@ El daño concreto del proceso actual es aceptar dos usos del mismo espacio en el
 
 - Un solicitante autenticado crea una solicitud a su nombre, en estado pendiente.
 - Se rechazan intervalos inválidos, propósito vacío, espacio inexistente o inactivo, y duración menor a 30 minutos.
-- Se rechaza el cruce con una reserva aprobada del mismo espacio.
-- La consulta de disponibilidad muestra los intervalos ocupados del rango pedido.
+- Se rechaza el cruce con una reserva pendiente o aprobada del mismo espacio. El intervalo es semiabierto.
+- La consulta de disponibilidad muestra pendientes y aprobadas del rango pedido, no rechazadas ni canceladas.
+- Solo un solicitante crea solicitudes, a su propio nombre.
 
 ## Capabilities
 

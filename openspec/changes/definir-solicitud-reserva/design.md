@@ -29,4 +29,4 @@ Ver `PLAN_INGENIERIA.md`, secciones 2 y 3. La invariante de cruce es el motivo d
 ## Risks / Trade-offs
 
 - [SQLite no excluye rangos entre procesos] → limitación ya aceptada en el plan. Un solo proceso.
-- [La spec de cruce, en este borrador, nombra solo reservas aprobadas] → contradice la decisión del plan de que `pendiente` también ocupa. No se programa hasta corregir esa frase en la revisión.
+- [El borrador solo nombraba reservas aprobadas] → la revisión del 2026-10-23 lo corrigió: pendiente y aprobada ocupan, comparación semiabierta. Se implementa la spec corregida, no el borrador.
