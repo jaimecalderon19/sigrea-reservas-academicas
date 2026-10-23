@@ -14,6 +14,10 @@ def usuario(item: Usuario) -> dict:
 def instante(valor) -> str | None:
     if valor is None:
         return None
+    if valor.tzinfo is None:
+        from datetime import timezone
+
+        valor = valor.replace(tzinfo=timezone.utc)
     return valor.isoformat()
 
 

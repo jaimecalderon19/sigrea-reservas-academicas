@@ -3,12 +3,15 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from datetime import datetime
+
 from sigrea.aplicacion.espacios import (
     actualizar_espacio,
     crear_espacio,
     listar_espacios,
     obtener_espacio,
 )
+from sigrea.aplicacion.reservas import crear_solicitud, disponibilidad
 from sigrea.aplicacion.identidad import (
     actualizar_cuenta,
     ingresar,
@@ -21,6 +24,7 @@ from sigrea.dominio.errores import ErrorNegocio
 from sigrea.infraestructura.db import preparar
 from sigrea.infraestructura.modelos import Usuario
 from sigrea.api.serial import espacio as serializar_espacio
+from sigrea.api.serial import reserva as serializar_reserva
 from sigrea.api.serial import usuario as serializar_usuario
 
 ESTADOS = {
@@ -70,6 +74,13 @@ class EspacioCambio(BaseModel):
     capacidad: int | None = None
     ubicacion: str | None = None
     activo: bool | None = None
+
+
+class ReservaEntrada(BaseModel):
+    espacio_id: int
+    inicio: datetime
+    fin: datetime
+    proposito: str
 
 
 def create_app(database_url: str = "sqlite:///./sigrea.db") -> FastAPI:
@@ -185,5 +196,38 @@ def create_app(database_url: str = "sqlite:///./sigrea.db") -> FastAPI:
             db, actual, espacio_id, cuerpo.model_dump(exclude_unset=True)
         )
         return serializar_espacio(actualizado)
+
+    @app.post("/api/reservas", status_code=201)
+    def alta_reserva(
+        cuerpo: ReservaEntrada,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        creada = crear_solicitud(
+            db, actual, cuerpo.espacio_id, cuerpo.inicio, cuerpo.fin, cuerpo.proposito
+        )
+        return serializar_reserva(creada)
+
+    @app.get("/api/espacios/{espacio_id}/disponibilidad")
+    def ver_disponibilidad(
+        espacio_id: int,
+        desde: datetime,
+        hasta: datetime,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        del actual
+        ocupados = disponibilidad(db, espacio_id, desde, hasta)
+        return {
+            "ocupados": [
+                {
+                    "reserva_id": item.id,
+                    "inicio": serializar_reserva(item)["inicio"],
+                    "fin": serializar_reserva(item)["fin"],
+                    "estado": item.estado,
+                }
+                for item in ocupados
+            ]
+        }
 
     return app
