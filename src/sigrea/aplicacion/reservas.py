@@ -79,6 +79,102 @@ def crear_solicitud(
         return reserva
 
 
+def _visible(actor: Usuario, reserva: Reserva) -> Reserva:
+    if actor.rol == "solicitante" and reserva.solicitante_id != actor.id:
+        raise ErrorNegocio("prohibido", "No puede operar esa reserva")
+    return reserva
+
+
+def obtener_reserva(db: Session, actor: Usuario, reserva_id: int) -> Reserva:
+    reserva = db.get(Reserva, reserva_id)
+    if reserva is None:
+        if actor.rol == "solicitante":
+            raise ErrorNegocio("prohibido", "No puede operar esa reserva")
+        raise ErrorNegocio("no_encontrado", "La reserva no existe")
+    return _visible(actor, reserva)
+
+
+def listar_reservas(
+    db: Session, actor: Usuario, estado: str | None = None
+) -> list[Reserva]:
+    if estado is not None and estado not in (
+        "pendiente",
+        "aprobada",
+        "rechazada",
+        "cancelada",
+    ):
+        raise ErrorNegocio("datos_invalidos", "Estado no admitido")
+    consulta = db.query(Reserva)
+    if actor.rol == "solicitante":
+        consulta = consulta.filter(Reserva.solicitante_id == actor.id)
+    if estado is not None:
+        consulta = consulta.filter(Reserva.estado == estado)
+    return consulta.order_by(Reserva.id).all()
+
+
+def _decidir(
+    db: Session, actor: Usuario, reserva_id: int, nota: str, estado: str
+) -> Reserva:
+    if actor.rol not in ("coordinador", "administrador"):
+        raise ErrorNegocio("prohibido", "Solo coordinador o administrador deciden")
+    texto = nota.strip()
+    if not texto:
+        raise ErrorNegocio("datos_invalidos", "La nota de revision es obligatoria")
+    with _cerrojo:
+        reserva = db.get(Reserva, reserva_id)
+        if reserva is None:
+            raise ErrorNegocio("no_encontrado", "La reserva no existe")
+        if reserva.estado != "pendiente":
+            raise ErrorNegocio(
+                "estado_invalido", "Solo se decide una solicitud pendiente"
+            )
+        if estado == "aprobada" and hay_cruce(
+            db, reserva.espacio_id, _leer_utc(reserva.inicio), _leer_utc(reserva.fin), reserva.id
+        ):
+            raise ErrorNegocio("espacio_no_disponible", "El espacio no esta disponible")
+        reserva.estado = estado
+        reserva.nota_revision = texto
+        reserva.revisor_id = actor.id
+        reserva.revisado_en = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(reserva)
+        return reserva
+
+
+def aprobar(db: Session, actor: Usuario, reserva_id: int, nota: str) -> Reserva:
+    return _decidir(db, actor, reserva_id, nota, "aprobada")
+
+
+def rechazar(db: Session, actor: Usuario, reserva_id: int, nota: str) -> Reserva:
+    return _decidir(db, actor, reserva_id, nota, "rechazada")
+
+
+def cancelar(
+    db: Session, actor: Usuario, reserva_id: int, nota: str | None
+) -> Reserva:
+    with _cerrojo:
+        reserva = db.get(Reserva, reserva_id)
+        if reserva is None:
+            if actor.rol == "solicitante":
+                raise ErrorNegocio("prohibido", "No puede operar esa reserva")
+            raise ErrorNegocio("no_encontrado", "La reserva no existe")
+        if reserva.estado not in ESTADOS_OCUPAN:
+            raise ErrorNegocio(
+                "estado_invalido", "Solo se cancela una reserva pendiente o aprobada"
+            )
+        if actor.rol == "solicitante" and reserva.solicitante_id != actor.id:
+            raise ErrorNegocio("prohibido", "No puede cancelar la reserva de otro")
+        if actor.rol not in ("solicitante", "coordinador", "administrador"):
+            raise ErrorNegocio("prohibido", "No puede cancelar esa reserva")
+        reserva.estado = "cancelada"
+        reserva.nota_cancelacion = (nota or "").strip() or None
+        reserva.cancelado_por_id = actor.id
+        reserva.cancelado_en = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(reserva)
+        return reserva
+
+
 def disponibilidad(
     db: Session, espacio_id: int, desde: datetime, hasta: datetime
 ) -> list[Reserva]:

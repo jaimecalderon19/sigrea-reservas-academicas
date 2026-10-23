@@ -11,7 +11,14 @@ from sigrea.aplicacion.espacios import (
     listar_espacios,
     obtener_espacio,
 )
-from sigrea.aplicacion.reservas import crear_solicitud, disponibilidad
+from sigrea.aplicacion.reservas import (
+    aprobar,
+    cancelar,
+    crear_solicitud,
+    disponibilidad,
+    listar_reservas,
+    rechazar,
+)
 from sigrea.aplicacion.identidad import (
     actualizar_cuenta,
     ingresar,
@@ -81,6 +88,14 @@ class ReservaEntrada(BaseModel):
     inicio: datetime
     fin: datetime
     proposito: str
+
+
+class NotaEntrada(BaseModel):
+    nota: str
+
+
+class CancelacionEntrada(BaseModel):
+    nota: str | None = None
 
 
 def create_app(database_url: str = "sqlite:///./sigrea.db") -> FastAPI:
@@ -229,5 +244,41 @@ def create_app(database_url: str = "sqlite:///./sigrea.db") -> FastAPI:
                 for item in ocupados
             ]
         }
+
+    @app.get("/api/reservas")
+    def reservas(
+        estado: str | None = None,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        return [serializar_reserva(item) for item in listar_reservas(db, actual, estado)]
+
+    @app.post("/api/reservas/{reserva_id}/aprobar")
+    def aprobar_reserva(
+        reserva_id: int,
+        cuerpo: NotaEntrada,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        return serializar_reserva(aprobar(db, actual, reserva_id, cuerpo.nota))
+
+    @app.post("/api/reservas/{reserva_id}/rechazar")
+    def rechazar_reserva(
+        reserva_id: int,
+        cuerpo: NotaEntrada,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        return serializar_reserva(rechazar(db, actual, reserva_id, cuerpo.nota))
+
+    @app.post("/api/reservas/{reserva_id}/cancelar")
+    def cancelar_reserva(
+        reserva_id: int,
+        cuerpo: CancelacionEntrada | None = None,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        nota = None if cuerpo is None else cuerpo.nota
+        return serializar_reserva(cancelar(db, actual, reserva_id, nota))
 
     return app
