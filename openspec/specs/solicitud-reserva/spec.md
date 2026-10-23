@@ -33,7 +33,7 @@ El sistema SHALL crear la solicitud a nombre del usuario autenticado, en estado 
 - **THEN** el sistema rechaza la acción por falta de permiso y no registra la solicitud
 
 ### Requirement: Intervalo válido
-El sistema SHALL exigir inicio anterior al fin, duración de al menos 30 minutos e instantes con zona horaria explícita.
+El sistema SHALL exigir inicio anterior al fin, duración de al menos 30 minutos y como máximo cuatro horas, e instantes con zona horaria explícita.
 
 #### Scenario: Fin que no es posterior al inicio
 - **WHEN** el fin es igual o anterior al inicio
@@ -53,7 +53,15 @@ El sistema SHALL exigir inicio anterior al fin, duración de al menos 30 minutos
 
 #### Scenario: Duración de varias horas
 - **WHEN** un solicitante pide un espacio libre de 08:00 a 18:00
+- **THEN** el sistema rechaza la solicitud e informa que supera las cuatro horas consecutivas
+
+#### Scenario: Duración de cuatro horas
+- **WHEN** un solicitante pide un espacio libre de 08:00 a 12:00
 - **THEN** el sistema acepta la solicitud en estado pendiente
+
+#### Scenario: Duración mayor a cuatro horas
+- **WHEN** un solicitante pide un espacio libre de 08:00 a 12:01
+- **THEN** el sistema rechaza la solicitud e informa que supera las cuatro horas consecutivas
 
 ### Requirement: Ocupación del intervalo
 El sistema SHALL tratar como ocupado el intervalo de toda reserva pendiente o aprobada del mismo espacio, SHALL comparar intervalos semiabiertos y SHALL rechazar la solicitud que se cruce con esa ocupación.
@@ -92,3 +100,30 @@ El sistema SHALL informar a un usuario autenticado los intervalos de reservas pe
 #### Scenario: Rechazada fuera de la ocupación
 - **WHEN** un usuario autenticado consulta E en un rango donde la única reserva de E está rechazada
 - **THEN** la respuesta no incluye esa reserva
+
+### Requirement: Bloque consecutivo del mismo usuario
+El sistema SHALL rechazar la solicitud si, al unirla sin hueco con las reservas pendientes o aprobadas del mismo usuario y del mismo espacio, el bloque continuo supera cuatro horas.
+
+#### Scenario: Encadenar hasta cuatro horas
+- **WHEN** el mismo solicitante ya tiene una reserva pendiente del espacio E de 08:00 a 10:00 y pide E de 10:00 a 12:00
+- **THEN** el sistema acepta la solicitud en estado pendiente
+
+#### Scenario: Encadenar por encima de cuatro horas
+- **WHEN** el mismo solicitante ya tiene una reserva pendiente del espacio E de 08:00 a 10:00 y pide E de 10:00 a 12:01
+- **THEN** el sistema rechaza la solicitud e informa que supera las cuatro horas consecutivas
+
+#### Scenario: Un hueco rompe la consecutividad
+- **WHEN** el mismo solicitante ya tiene una reserva pendiente del espacio E de 08:00 a 10:00 y pide E de 10:01 a 14:00
+- **THEN** el sistema acepta la solicitud en estado pendiente
+
+#### Scenario: Otro espacio no se suma
+- **WHEN** el mismo solicitante ya tiene una reserva pendiente del espacio E1 de 08:00 a 12:00 y pide el espacio E2 de 08:00 a 12:00
+- **THEN** el sistema acepta la solicitud sobre E2 en estado pendiente
+
+#### Scenario: Otro usuario no se suma
+- **WHEN** un solicitante tiene una reserva pendiente del espacio E de 08:00 a 12:00 y otro solicitante pide E de 12:00 a 16:00
+- **THEN** el sistema acepta la solicitud del segundo solicitante en estado pendiente
+
+#### Scenario: Una reserva rechazada no alarga el bloque
+- **WHEN** la única reserva previa del solicitante en E, de 08:00 a 10:00, está rechazada y pide E de 10:00 a 14:00
+- **THEN** el sistema acepta la solicitud en estado pendiente
