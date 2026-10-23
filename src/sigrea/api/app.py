@@ -38,6 +38,7 @@ ESTADOS = {
     "correo_duplicado": 409,
     "codigo_duplicado": 409,
     "espacio_no_disponible": 409,
+    "duracion_excedida": 409,
     "espacio_inactivo": 409,
     "estado_invalido": 409,
     "credenciales_invalidas": 401,

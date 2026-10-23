@@ -154,13 +154,13 @@ def test_instante_sin_zona(cliente):
     assert respuesta.json()["codigo"] == "datos_invalidos"
 
 
-def test_diez_horas_se_aceptan(cliente):
+def test_jornada_de_diez_horas_supera_el_tope(cliente):
     admin = administrador(cliente)
     sala = espacio(cliente, admin)
     token, _ = solicitante(cliente)
     respuesta = pedir(cliente, token, sala, momento(8), momento(18))
-    assert respuesta.status_code == 201
-    assert respuesta.json()["estado"] == "pendiente"
+    assert respuesta.status_code == 409
+    assert respuesta.json()["codigo"] == "duracion_excedida"
 
 
 def test_solape_con_pendiente(cliente):

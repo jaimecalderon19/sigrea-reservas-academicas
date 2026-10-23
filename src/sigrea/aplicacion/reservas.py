@@ -4,7 +4,12 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from sigrea.dominio.errores import ErrorNegocio
-from sigrea.dominio.tiempo import exigir_intervalo, exigir_rango, se_cruzan
+from sigrea.dominio.tiempo import (
+    bloque_supera_cuatro_horas,
+    exigir_intervalo,
+    exigir_rango,
+    se_cruzan,
+)
 from sigrea.infraestructura.modelos import Espacio, Reserva, Usuario
 
 ESTADOS_OCUPAN = ("pendiente", "aprobada")
@@ -64,6 +69,21 @@ def crear_solicitud(
             raise ErrorNegocio("espacio_inactivo", "El espacio no admite reservas")
         if hay_cruce(db, espacio_id, inicio_utc, fin_utc):
             raise ErrorNegocio("espacio_no_disponible", "El espacio no esta disponible")
+        vecinas = [
+            (_leer_utc(fila.inicio), _leer_utc(fila.fin))
+            for fila in db.query(Reserva)
+            .filter(
+                Reserva.espacio_id == espacio_id,
+                Reserva.solicitante_id == actor.id,
+                Reserva.estado.in_(ESTADOS_OCUPAN),
+            )
+            .all()
+        ]
+        if bloque_supera_cuatro_horas(inicio_utc, fin_utc, vecinas):
+            raise ErrorNegocio(
+                "duracion_excedida",
+                "La reserva supera las cuatro horas consecutivas",
+            )
         reserva = Reserva(
             espacio_id=espacio.id,
             solicitante_id=actor.id,
