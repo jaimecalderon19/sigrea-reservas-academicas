@@ -3,6 +3,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from sigrea.aplicacion.espacios import (
+    actualizar_espacio,
+    crear_espacio,
+    listar_espacios,
+    obtener_espacio,
+)
 from sigrea.aplicacion.identidad import (
     actualizar_cuenta,
     ingresar,
@@ -14,6 +20,7 @@ from sigrea.aplicacion.identidad import (
 from sigrea.dominio.errores import ErrorNegocio
 from sigrea.infraestructura.db import preparar
 from sigrea.infraestructura.modelos import Usuario
+from sigrea.api.serial import espacio as serializar_espacio
 from sigrea.api.serial import usuario as serializar_usuario
 
 ESTADOS = {
@@ -45,6 +52,23 @@ class IngresoEntrada(BaseModel):
 
 class CuentaEntrada(BaseModel):
     rol: str | None = None
+    activo: bool | None = None
+
+
+class EspacioEntrada(BaseModel):
+    codigo: str
+    nombre: str
+    tipo: str
+    capacidad: int
+    ubicacion: str
+
+
+class EspacioCambio(BaseModel):
+    codigo: str | None = None
+    nombre: str | None = None
+    tipo: str | None = None
+    capacidad: int | None = None
+    ubicacion: str | None = None
     activo: bool | None = None
 
 
@@ -118,5 +142,48 @@ def create_app(database_url: str = "sqlite:///./sigrea.db") -> FastAPI:
     ):
         cuenta = actualizar_cuenta(db, actual, usuario_id, cuerpo.rol, cuerpo.activo)
         return serializar_usuario(cuenta)
+
+    @app.post("/api/espacios", status_code=201)
+    def alta_espacio(
+        cuerpo: EspacioEntrada,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        creado = crear_espacio(
+            db,
+            actual,
+            cuerpo.codigo,
+            cuerpo.nombre,
+            cuerpo.tipo,
+            cuerpo.capacidad,
+            cuerpo.ubicacion,
+        )
+        return serializar_espacio(creado)
+
+    @app.get("/api/espacios")
+    def espacios(db: Session = Depends(get_db), actual: Usuario = Depends(actor)):
+        del actual
+        return [serializar_espacio(item) for item in listar_espacios(db)]
+
+    @app.get("/api/espacios/{espacio_id}")
+    def espacio_uno(
+        espacio_id: int,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        del actual
+        return serializar_espacio(obtener_espacio(db, espacio_id))
+
+    @app.patch("/api/espacios/{espacio_id}")
+    def cambiar_espacio(
+        espacio_id: int,
+        cuerpo: EspacioCambio,
+        db: Session = Depends(get_db),
+        actual: Usuario = Depends(actor),
+    ):
+        actualizado = actualizar_espacio(
+            db, actual, espacio_id, cuerpo.model_dump(exclude_unset=True)
+        )
+        return serializar_espacio(actualizado)
 
     return app
