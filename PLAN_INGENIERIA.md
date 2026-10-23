@@ -291,10 +291,25 @@ Para que la spec no las reabra:
 - Estados de reserva: `pendiente`, `aprobada`, `rechazada`, `cancelada`.
 - Ocupan cupo: `pendiente` y `aprobada`.
 - Intervalo semiabierto `[inicio, fin)`.
-- Duración mínima de 30 minutos. Sin duración máxima.
+- Duración mínima de 30 minutos. Sin duración máxima en la primera versión. Ver la adenda.
 - Registro público solo puede crear un `solicitante`. Rol y desactivación los cambia el administrador.
 - Un solicitante cancela lo suyo si está pendiente o aprobada. Coordinador y administrador pueden cancelar cualquiera en esos dos estados.
 - Aprobar y rechazar exigen nota. Solo desde `pendiente`. Solo coordinador o administrador.
 - Un espacio inactivo no admite solicitudes nuevas. Su historial se conserva.
 - El propósito es obligatorio, hasta 500 caracteres.
 - El correo se guarda en minúsculas y es único.
+
+## Adenda 2026-10-23. Tope de cuatro horas
+
+La institución pidió, ya con las capacidades iniciales especificadas e implementadas, que ningún usuario reserve un espacio durante más de cuatro horas consecutivas.
+
+Afecta este plan en un solo punto: la frase "sin duración máxima" deja de describir el sistema. No afecta la arquitectura, el stack, la ocupación de `pendiente` y `aprobada`, ni el intervalo semiabierto.
+
+Interpretación que se lleva a la spec, para no dejar "consecutivas" ambiguo:
+
+- Cuatro horas exactas se permiten. Un segundo más, no.
+- Consecutivo es el bloque del mismo usuario en el mismo espacio, uniendo reservas vigentes que se tocan sin hueco.
+- Un hueco, otro espacio u otro usuario no se suman.
+- Rechazadas y canceladas no alargan el bloque.
+
+El cambio se especifica en `limitar-duracion-consecutiva` antes de tocar el código. La prueba que aceptaba 08:00 a 18:00 se invierte en la implementación de ese cambio, no en este registro.
